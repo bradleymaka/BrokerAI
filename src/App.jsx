@@ -36,6 +36,17 @@ const HOOD_PHOTOS = {
   "Bushwick":"https://images.unsplash.com/photo-1536376072261-38c75246e2ba?w=600",
 };
 
+const NYC_BOROUGHS = {
+  "Manhattan": ["Battery Park City","Chelsea","Chinatown","Civic Center","East Harlem","East Village","Financial District","Flatiron","Gramercy","Greenwich Village","Hamilton Heights","Harlem","Hell's Kitchen","Inwood","Kips Bay","Little Italy","Lower East Side","Manhattanville","Marble Hill","Midtown","Morningside Heights","Murray Hill","NoHo","Nolita","Roosevelt Island","SoHo","Spanish Harlem","Stuyvesant Town","Sutton Place","Tribeca","Tudor City","Two Bridges","Upper East Side","Upper West Side","Washington Heights","West Village","Yorkville"],
+  "Brooklyn": ["Bath Beach","Bay Ridge","Bedford-Stuyvesant","Bensonhurst","Bergen Beach","Borough Park","Brighton Beach","Brooklyn Heights","Brownsville","Bushwick","Canarsie","Carroll Gardens","Clinton Hill","Cobble Hill","Coney Island","Crown Heights","Cypress Hills","DUMBO","Ditmas Park","Downtown Brooklyn","Dyker Heights","East Flatbush","East New York","East Williamsburg","Flatbush","Flatlands","Fort Greene","Fort Hamilton","Gerritsen Beach","Gowanus","Gravesend","Greenpoint","Greenwood Heights","Homecrest","Kensington","Manhattan Beach","Marine Park","Midwood","Mill Basin","Navy Yard","New Utrecht","Ocean Hill","Ocean Parkway","Park Slope","Parkville","Prospect Heights","Prospect Lefferts Gardens","Prospect Park South","Red Hook","Remsen Village","Sea Gate","Sheepshead Bay","South Slope","Starrett City","Sunset Park","Vinegar Hill","Williamsburg","Windsor Terrace"],
+  "Queens": ["Astoria","Auburndale","Bayside","Bellerose","Briarwood","Broad Channel","Cambria Heights","College Point","Corona","Ditmars-Steinway","Douglaston","East Elmhurst","East Flushing","Elmhurst","Far Rockaway","Floral Park","Flushing","Forest Hills","Fresh Meadows","Glen Oaks","Glendale","Hillcrest","Hollis","Howard Beach","Hunters Point","Jackson Heights","Jamaica","Jamaica Estates","Jamaica Hills","Kew Gardens","Kew Gardens Hills","Laurelton","Little Neck","Long Island City","Maspeth","Middle Village","Murray Hill","Neponsit","Oakland Gardens","Ozone Park","Queens Village","Rego Park","Richmond Hill","Ridgewood","Rockaway Beach","Rosedale","Sunnyside","Springfield Gardens","St. Albans","Sunnyside","Whitestone","Woodhaven","Woodside"],
+  "Bronx": ["Allerton","Baychester","Bedford Park","Belmont","Bronxdale","Castle Hill","City Island","Clason Point","Clasons Point","Co-op City","Country Club","Eastchester","Edenwald","Fieldston","Fordham","High Bridge","Hunts Point","Kingsbridge","Kingsbridge Heights","Longwood","Marble Hill","Melrose","Morris Heights","Morris Park","Morrisania","Mott Haven","Mount Eden","Mount Hope","Norwood","Parkchester","Pelham Bay","Pelham Gardens","Port Morris","Riverdale","Schuylerville","Soundview","Spuyten Duyvil","Throggs Neck","Tremont","University Heights","Van Cortlandt Village","Van Nest","Wakefield","West Bronx","West Farms","Westchester Square","Williamsbridge","Woodlawn"],
+  "Staten Island": ["Annadale","Arden Heights","Arlington","Bay Terrace","Bloomfield","Bulls Head","Castleton Corners","Charleston","Chelsea","Clifton","Concord","Dongan Hills","Eltingville","Emerson Hill","Fox Hills","Graniteville","Grant City","Grasmere","Great Kills","Greenridge","Grymes Hill","Heartland Village","Huguenot","Lighthouse Hill","Manor Heights","Mariners Harbor","Midland Beach","New Brighton","New Dorp","New Dorp Beach","New Springville","Oakwood","Pleasant Plains","Port Richmond","Prince's Bay","Randall Manor","Richmond Town","Richmondtown","Rosebank","Rossville","Shore Acres","Silver Lake","South Beach","St. George","Stapleton","Todt Hill","Tompkinsville","Tottenville","Travis","Westerleigh","Willowbrook","Woodrow"]}
+;
+
+const ALL_HOODS = Object.values(NYC_BOROUGHS).flat().sort();
+
+
 async function claudeAI(prompt, max=300) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method:"POST", headers:{"Content-Type":"application/json"},
@@ -115,7 +126,7 @@ export default function RealEstateAI() {
   const [aiLoading, setAiLoading] = useState(false); const [aiTask, setAiTask] = useState("");
   const [nlQuery, setNlQuery] = useState(""); const [nlResults, setNlResults] = useState(null);
   const [fHood, setFHood] = useState("All"); const [fBeds, setFBeds] = useState("Any"); const [fRent, setFRent] = useState(5000);
-  const [newL, setNewL] = useState({ addr:"", hood:"Williamsburg", beds:"", baths:"1", rent:"", desc:"", photo:"", photos:[], propType:"apartment", floor:"", unit:"", amenities:[], laundry:"in-building", petFriendly:false, parking:false });
+  const [newL, setNewL] = useState({ addr:"", borough:"Brooklyn", hood:"Williamsburg", beds:"", baths:"1", rent:"", desc:"", photo:"", photos:[], propType:"apartment", floor:"", unit:"", amenities:[], laundry:"in-building", petFriendly:false, parking:false, heating:"", cooling:"", internet:"", utilities:"", deposit:"", lease:"" });
   const [addrSuggestions, setAddrSuggestions] = useState([]);
   const [addrLoading, setAddrLoading] = useState(false);
   const [uploadingListingPhoto, setUploadingListingPhoto] = useState(false);
@@ -282,7 +293,8 @@ export default function RealEstateAI() {
     if(!newL.addr||!newL.beds||!newL.rent){showToast("Fill address, beds, rent first","warn");return;}
     setAiLoading(true); setAiTask("Writing listing description...");
     try {
-      const amenStr = newL.amenities.length>0?`, amenities: ${newL.amenities.join(", ")}`:""; const res = await claudeAI(`Write a compelling NYC ${newL.propType} listing description under 80 words for: ${newL.beds==="0"?"Studio":newL.beds+"BR"}/${newL.baths}BA ${newL.propType}${newL.floor?" on floor "+newL.floor:""} in ${newL.hood}, $${newL.rent}/mo at ${newL.addr}. Laundry: ${newL.laundry}${newL.petFriendly?", pet friendly":""}${amenStr}. No "Welcome to" opener.`);
+      const amenStr = newL.amenities.length>0?`Amenities: ${newL.amenities.slice(0,6).join(", ")}.`:"";
+      const res = await claudeAI(`Write a compelling NYC ${newL.propType} listing description under 80 words. Details: ${newL.beds==="0"?"Studio":newL.beds+" bedroom"}/${newL.baths} bathroom ${newL.propType} in ${newL.hood}, ${newL.borough}. Address: ${newL.addr}${newL.floor?" floor "+newL.floor:""}${newL.unit?" unit "+newL.unit:""}. Rent: $${newL.rent}/mo. Laundry: ${newL.laundry||"in building"}. ${newL.petFriendly?"Pet friendly. ":""}${newL.parking?"Parking available. ":""}${amenStr} No "Welcome to" opener. Be specific and compelling.`);
       setNewL(p=>({...p,desc:res})); showToast("AI description written!");
     } catch { showToast("API error","warn"); }
     setAiLoading(false); setAiTask("");
@@ -326,18 +338,31 @@ export default function RealEstateAI() {
     setContactSent(true); showToast("Message sent!");
   }
 
-  // Address autocomplete using OpenStreetMap Nominatim (free, no API key)
+  // Address autocomplete using OpenStreetMap Nominatim — handles partial numbers like "128-45"
   async function searchAddress(query) {
-    if(query.length < 4) { setAddrSuggestions([]); return; }
+    if(query.length < 3) { setAddrSuggestions([]); return; }
     setAddrLoading(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+", New York City")}&format=json&limit=5&addressdetails=1`);
+      // Search NYC specifically for better results with partial addresses
+      const q = encodeURIComponent(query + ", New York, NY");
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=6&addressdetails=1&countrycodes=us&bounded=1&viewbox=-74.2591,40.4774,-73.7004,40.9176`);
       const data = await res.json();
-      setAddrSuggestions(data.map(d=>({
-        display: d.display_name.split(",").slice(0,3).join(","),
-        full: d.display_name,
-        hood: d.address?.suburb||d.address?.neighbourhood||d.address?.city_district||""
-      })));
+      const suggestions = data
+        .filter(d=>d.address?.state==="New York")
+        .map(d=>{
+          const a = d.address;
+          const num = a.house_number||"";
+          const street = a.road||"";
+          const hood = a.suburb||a.neighbourhood||a.city_district||a.town||"";
+          const city = a.city||a.town||"New York";
+          const zip = a.postcode||"";
+          const boro = a.county||"";
+          const display = [num,street].filter(Boolean).join(" ");
+          const full = [display, hood, city, "NY", zip].filter(Boolean).join(", ");
+          return { display: full||d.display_name.split(",").slice(0,4).join(","), hood, zip, boro };
+        })
+        .filter(s=>s.display.length>3);
+      setAddrSuggestions(suggestions.slice(0,6));
     } catch { setAddrSuggestions([]); }
     setAddrLoading(false);
   }
@@ -361,7 +386,7 @@ export default function RealEstateAI() {
     const mainPhoto = newL.photos[0]||newL.photo||HOOD_PHOTOS[newL.hood];
     const l={id:Date.now(),...newL,rent:parseInt(newL.rent),beds:parseInt(newL.beds),baths:parseInt(newL.baths)||1,status:"active",broker:user?.displayName||user?.email||"Broker",brokerId:user?.uid||"",photo:mainPhoto,leads:[]};
     setListings(prev=>[l,...prev]);
-    setNewL({addr:"",hood:"Williamsburg",beds:"",baths:"1",rent:"",desc:"",photo:"",photos:[],propType:"apartment",floor:"",unit:"",amenities:[],laundry:"in-building",petFriendly:false,parking:false});
+    setNewL({addr:"",borough:"Brooklyn",hood:"Williamsburg",beds:"",baths:"1",rent:"",desc:"",photo:"",photos:[],propType:"apartment",floor:"",unit:"",amenities:[],laundry:"in-building",petFriendly:false,parking:false,heating:"",cooling:"",internet:"",utilities:"",deposit:"",lease:""});
     setAddrSuggestions([]);
     setView("broker"); showToast("Listing published!");
   }
@@ -1002,50 +1027,63 @@ export default function RealEstateAI() {
       {/* NEW LISTING */}
       <div className={`pg${view==="new-listing"?" show":""}`}>
         <div className="ph"><h2>New listing</h2><p>Fill in the details — AI will help with photos and description</p></div>
-        <div style={{maxWidth:580}}>
+        <div style={{maxWidth:600}}>
 
           {/* Property type */}
           <div className="fgroup">
             <label className="flabel">Property type</label>
             <div style={{display:"flex",gap:10}}>
               {["apartment","house"].map(t=>(
-                <div key={t} onClick={()=>setNewL(p=>({...p,propType:t}))} style={{flex:1,padding:"12px 16px",border:`1.5px solid ${newL.propType===t?"#7c3aed":"#3b1f8c"}`,borderRadius:10,cursor:"pointer",textAlign:"center",background:newL.propType===t?"rgba(124,58,237,.2)":"transparent",transition:"all .15s"}}>
-                  <div style={{fontSize:20,marginBottom:4}}>{t==="apartment"?"🏢":"🏠"}</div>
+                <div key={t} onClick={()=>setNewL(p=>({...p,propType:t}))} style={{flex:1,padding:"14px 16px",border:`1.5px solid ${newL.propType===t?"#7c3aed":"#3b1f8c"}`,borderRadius:10,cursor:"pointer",textAlign:"center",background:newL.propType===t?"rgba(124,58,237,.2)":"transparent",transition:"all .15s"}}>
+                  <div style={{fontSize:24,marginBottom:4}}>{t==="apartment"?"🏢":"🏠"}</div>
                   <div style={{fontSize:13,fontWeight:700,color:"#e0d4ff",textTransform:"capitalize"}}>{t}</div>
                 </div>
               ))}
             </div>
           </div>
 
+          {/* Borough */}
+          <div className="fgroup">
+            <label className="flabel">Borough</label>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {Object.keys(NYC_BOROUGHS).map(b=>(
+                <div key={b} onClick={()=>setNewL(p=>({...p,borough:b,hood:NYC_BOROUGHS[b][0]}))} style={{padding:"8px 16px",borderRadius:20,border:`1.5px solid ${newL.borough===b?"#7c3aed":"#3b1f8c"}`,cursor:"pointer",fontSize:13,fontWeight:600,color:newL.borough===b?"#e0d4ff":"#7c6aaa",background:newL.borough===b?"rgba(124,58,237,.2)":"transparent",transition:"all .15s"}}>
+                  {b}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Neighborhood — filtered by borough */}
+          <div className="fgroup">
+            <label className="flabel">Neighborhood</label>
+            <select className="fsel" value={newL.hood} onChange={e=>setNewL(p=>({...p,hood:e.target.value}))}>
+              {(NYC_BOROUGHS[newL.borough]||ALL_HOODS).map(n=><option key={n}>{n}</option>)}
+            </select>
+          </div>
+
           {/* Address with autocomplete */}
           <div className="fgroup" style={{position:"relative"}}>
             <label className="flabel">Street address</label>
-            <input className="finput" placeholder="Start typing an address..." value={newL.addr}
+            <input className="finput" placeholder="Start typing e.g. 128-45 or 47 Bedford..." value={newL.addr}
               onChange={e=>{setNewL(p=>({...p,addr:e.target.value}));searchAddress(e.target.value);}}
-              onBlur={()=>setTimeout(()=>setAddrSuggestions([]),200)}
+              onBlur={()=>setTimeout(()=>setAddrSuggestions([]),220)}
               autoComplete="off"
             />
-            {addrLoading&&<div style={{fontSize:11,color:"#7c6aaa",marginTop:4}}><span className="spin"></span>Searching...</div>}
+            {addrLoading&&<div style={{fontSize:11,color:"#7c6aaa",marginTop:5}}><span className="spin"></span>Looking up address...</div>}
             {addrSuggestions.length>0&&(
-              <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#13132a",border:"1px solid #3b1f8c",borderRadius:8,zIndex:50,overflow:"hidden",boxShadow:"0 8px 24px rgba(0,0,0,.4)"}}>
+              <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,background:"#13132a",border:"1px solid #7c3aed",borderRadius:10,zIndex:100,overflow:"hidden",boxShadow:"0 12px 32px rgba(0,0,0,.6)"}}>
                 {addrSuggestions.map((s,i)=>(
                   <div key={i} onClick={()=>{setNewL(p=>({...p,addr:s.display,hood:s.hood||p.hood}));setAddrSuggestions([]);}}
-                    style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #1e1b4b",fontSize:13,color:"#e0d4ff"}}
-                    onMouseOver={e=>e.currentTarget.style.background="rgba(124,58,237,.15)"}
+                    style={{padding:"11px 14px",cursor:"pointer",borderBottom:i<addrSuggestions.length-1?"1px solid #1e1b4b":"none",fontSize:13,color:"#e0d4ff",display:"flex",alignItems:"center",gap:10}}
+                    onMouseOver={e=>e.currentTarget.style.background="rgba(124,58,237,.2)"}
                     onMouseOut={e=>e.currentTarget.style.background="transparent"}>
-                    📍 {s.display}
+                    <span style={{fontSize:16}}>📍</span>
+                    <span>{s.display}</span>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Neighborhood */}
-          <div className="fgroup">
-            <label className="flabel">Neighborhood</label>
-            <select className="fsel" value={newL.hood} onChange={e=>setNewL(p=>({...p,hood:e.target.value,photo:""}))}>
-              {"Williamsburg,Greenpoint,Crown Heights,Hell's Kitchen,Fort Greene,Astoria,Park Slope,Bushwick,Lower East Side,East Village,Upper West Side,Harlem,Bed-Stuy,Flatbush,Long Island City".split(",").map(n=><option key={n}>{n}</option>)}
-            </select>
           </div>
 
           {/* Apartment-specific: floor + unit */}
@@ -1055,12 +1093,12 @@ export default function RealEstateAI() {
                 <label className="flabel">Floor</label>
                 <select className="fsel" value={newL.floor} onChange={e=>setNewL(p=>({...p,floor:e.target.value}))}>
                   <option value="">Select floor</option>
-                  {["Garden/Ground","1","2","3","4","5","6","7","8","9","10","11-15","16-20","20+"].map(f=><option key={f} value={f}>{f}</option>)}
+                  {["Garden/Ground","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16-20","21-30","31-40","40+"].map(f=><option key={f} value={f}>{f}</option>)}
                 </select>
               </div>
               <div className="fgroup">
                 <label className="flabel">Unit / Apt number</label>
-                <input className="finput" placeholder="e.g. 4B" value={newL.unit} onChange={e=>setNewL(p=>({...p,unit:e.target.value}))} />
+                <input className="finput" placeholder="e.g. 4B or 12C" value={newL.unit} onChange={e=>setNewL(p=>({...p,unit:e.target.value}))} />
               </div>
             </div>
           )}
@@ -1072,52 +1110,135 @@ export default function RealEstateAI() {
               <select className="fsel" value={newL.beds} onChange={e=>setNewL(p=>({...p,beds:e.target.value}))}>
                 <option value="">Select</option>
                 <option value="0">Studio</option>
-                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option value="6+">6+</option>
               </select>
             </div>
             <div className="fgroup">
               <label className="flabel">Bathrooms</label>
               <select className="fsel" value={newL.baths} onChange={e=>setNewL(p=>({...p,baths:e.target.value}))}>
-                <option>1</option><option>1.5</option><option>2</option><option>2.5</option><option>3</option>
+                <option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option><option value="2.5">2.5</option><option value="3">3</option><option value="3+">3+</option>
               </select>
             </div>
           </div>
 
-          {/* Rent */}
-          <div className="fgroup">
-            <label className="flabel">Monthly rent ($)</label>
-            <input className="finput" type="number" placeholder="e.g. 3200" value={newL.rent} onChange={e=>setNewL(p=>({...p,rent:e.target.value}))} />
+          {/* Rent + deposit */}
+          <div className="two-inp">
+            <div className="fgroup">
+              <label className="flabel">Monthly rent ($)</label>
+              <input className="finput" type="number" placeholder="e.g. 3200" value={newL.rent} onChange={e=>setNewL(p=>({...p,rent:e.target.value}))} />
+            </div>
+            <div className="fgroup">
+              <label className="flabel">Security deposit</label>
+              <select className="fsel" value={newL.deposit} onChange={e=>setNewL(p=>({...p,deposit:e.target.value}))}>
+                <option value="">Not specified</option>
+                <option>1 month</option><option>1.5 months</option><option>2 months</option><option>3 months</option>
+              </select>
+            </div>
           </div>
 
-          {/* Laundry + parking + pets */}
+          {/* Lease */}
+          <div className="fgroup">
+            <label className="flabel">Lease length</label>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {["Month-to-month","6 months","1 year","2 years","Flexible"].map(l=>(
+                <div key={l} onClick={()=>setNewL(p=>({...p,lease:l}))} style={{padding:"7px 14px",borderRadius:8,border:`1.5px solid ${newL.lease===l?"#7c3aed":"#3b1f8c"}`,cursor:"pointer",fontSize:12,fontWeight:600,color:newL.lease===l?"#e0d4ff":"#7c6aaa",background:newL.lease===l?"rgba(124,58,237,.2)":"transparent",transition:"all .15s"}}>
+                  {l}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Utilities */}
+          <div className="two-inp">
+            <div className="fgroup">
+              <label className="flabel">Utilities included</label>
+              <select className="fsel" value={newL.utilities} onChange={e=>setNewL(p=>({...p,utilities:e.target.value}))}>
+                <option value="">Not specified</option>
+                <option>None included</option>
+                <option>Heat included</option>
+                <option>Heat + hot water</option>
+                <option>All utilities included</option>
+                <option>Water included</option>
+              </select>
+            </div>
+            <div className="fgroup">
+              <label className="flabel">Internet</label>
+              <select className="fsel" value={newL.internet} onChange={e=>setNewL(p=>({...p,internet:e.target.value}))}>
+                <option value="">Not specified</option>
+                <option>Included</option>
+                <option>Available (not included)</option>
+                <option>Not available</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Heating + Cooling */}
+          <div className="two-inp">
+            <div className="fgroup">
+              <label className="flabel">Heating</label>
+              <select className="fsel" value={newL.heating} onChange={e=>setNewL(p=>({...p,heating:e.target.value}))}>
+                <option value="">Not specified</option>
+                <option>Steam/radiator</option>
+                <option>Forced air</option>
+                <option>Electric baseboard</option>
+                <option>Radiant floor</option>
+                <option>No heat (tenant responsibility)</option>
+              </select>
+            </div>
+            <div className="fgroup">
+              <label className="flabel">Cooling</label>
+              <select className="fsel" value={newL.cooling} onChange={e=>setNewL(p=>({...p,cooling:e.target.value}))}>
+                <option value="">Not specified</option>
+                <option>Central AC</option>
+                <option>Window AC units</option>
+                <option>Split system</option>
+                <option>No AC</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Laundry */}
           <div className="fgroup">
             <label className="flabel">Laundry</label>
-            <select className="fsel" value={newL.laundry} onChange={e=>setNewL(p=>({...p,laundry:e.target.value}))}>
-              <option value="in-unit">In-unit washer/dryer</option>
-              <option value="in-building">Laundry in building</option>
-              <option value="none">No laundry</option>
-            </select>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {["In-unit W/D","W/D hookups","Laundry in building","Laundry nearby","No laundry"].map(l=>(
+                <div key={l} onClick={()=>setNewL(p=>({...p,laundry:l}))} style={{padding:"7px 14px",borderRadius:8,border:`1.5px solid ${newL.laundry===l?"#7c3aed":"#3b1f8c"}`,cursor:"pointer",fontSize:12,fontWeight:600,color:newL.laundry===l?"#e0d4ff":"#7c6aaa",background:newL.laundry===l?"rgba(124,58,237,.2)":"transparent",transition:"all .15s"}}>
+                  🧺 {l}
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div style={{display:"flex",gap:12,marginBottom:14,flexWrap:"wrap"}}>
+          {/* Pet + Parking toggles */}
+          <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
             {[{key:"petFriendly",label:"🐾 Pet friendly"},{key:"parking",label:"🚗 Parking available"}].map(({key,label})=>(
-              <div key={key} onClick={()=>setNewL(p=>({...p,[key]:!p[key]}))} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",border:`1.5px solid ${newL[key]?"#7c3aed":"#3b1f8c"}`,borderRadius:8,cursor:"pointer",background:newL[key]?"rgba(124,58,237,.2)":"transparent",transition:"all .15s"}}>
-                <div style={{width:16,height:16,borderRadius:4,background:newL[key]?"#7c3aed":"transparent",border:`2px solid ${newL[key]?"#7c3aed":"#7c6aaa"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"white"}}>{newL[key]?"✓":""}</div>
-                <span style={{fontSize:13,color:"#e0d4ff",fontWeight:500}}>{label}</span>
+              <div key={key} onClick={()=>setNewL(p=>({...p,[key]:!p[key]}))} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 16px",border:`1.5px solid ${newL[key]?"#7c3aed":"#3b1f8c"}`,borderRadius:8,cursor:"pointer",background:newL[key]?"rgba(124,58,237,.2)":"transparent",transition:"all .15s"}}>
+                <div style={{width:18,height:18,borderRadius:4,background:newL[key]?"#7c3aed":"transparent",border:`2px solid ${newL[key]?"#7c3aed":"#7c6aaa"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"white",fontWeight:700}}>{newL[key]?"✓":""}</div>
+                <span style={{fontSize:13,color:"#e0d4ff",fontWeight:600}}>{label}</span>
               </div>
             ))}
           </div>
 
-          {/* Amenities */}
+          {/* Amenities — full set */}
           <div className="fgroup">
             <label className="flabel">Amenities</label>
             <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-              {["Doorman","Elevator","Gym","Roof deck","Dishwasher","Hardwood floors","Central AC","Balcony","Storage","Bike room","Pool","Concierge"].map(a=>{
-                const sel = newL.amenities.includes(a);
+              {[
+                "Doorman","Virtual doorman","Elevator","Wheelchair accessible",
+                "Gym/Fitness center","Rooftop deck","Common outdoor space","Courtyard",
+                "Dishwasher","Microwave","Stainless appliances","Granite counters",
+                "Hardwood floors","High ceilings","Exposed brick","Large windows",
+                "Walk-in closet","Storage unit","Bike storage","Package room",
+                "Swimming pool","Hot tub","Sauna","Game room","Lounge/Club room",
+                "Co-working space","Concierge","Live-in super","Video intercom",
+                "Fireplace","Balcony/Terrace","Private outdoor space",
+                "Furnished","Short-term OK","No fee","Smoke-free building"
+              ].map(a=>{
+                const sel=newL.amenities.includes(a);
                 return (
                   <div key={a} onClick={()=>setNewL(p=>({...p,amenities:sel?p.amenities.filter(x=>x!==a):[...p.amenities,a]}))}
-                    style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${sel?"#7c3aed":"#3b1f8c"}`,cursor:"pointer",fontSize:12,color:sel?"#e0d4ff":"#7c6aaa",background:sel?"rgba(124,58,237,.2)":"transparent",transition:"all .15s"}}>
-                    {a}
+                    style={{padding:"6px 12px",borderRadius:20,border:`1.5px solid ${sel?"#7c3aed":"#3b1f8c"}`,cursor:"pointer",fontSize:12,color:sel?"#e0d4ff":"#7c6aaa",background:sel?"rgba(124,58,237,.2)":"transparent",transition:"all .15s",userSelect:"none"}}>
+                    {sel?"✓ ":""}{a}
                   </div>
                 );
               })}
@@ -1131,31 +1252,31 @@ export default function RealEstateAI() {
               <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
                 {newL.photos.map((p,i)=>(
                   <div key={i} style={{position:"relative"}}>
-                    <img src={p} alt="" style={{width:80,height:80,objectFit:"cover",borderRadius:8,border:"1px solid #3b1f8c"}} />
-                    <button onClick={()=>setNewL(prev=>({...prev,photos:prev.photos.filter((_,j)=>j!==i),photo:i===0?prev.photos[1]||"":prev.photo}))} style={{position:"absolute",top:-6,right:-6,width:18,height:18,borderRadius:"50%",background:"#dc2626",border:"none",color:"white",cursor:"pointer",fontSize:10,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                    <img src={p} alt="" style={{width:90,height:90,objectFit:"cover",borderRadius:8,border:"1px solid #3b1f8c"}} />
+                    <button onClick={()=>setNewL(prev=>({...prev,photos:prev.photos.filter((_,j)=>j!==i),photo:i===0?(prev.photos[1]||""):prev.photo}))} style={{position:"absolute",top:-6,right:-6,width:20,height:20,borderRadius:"50%",background:"#dc2626",border:"none",color:"white",cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>✕</button>
                   </div>
                 ))}
               </div>
             )}
             <div className="btn-row">
               <button className="btn btn-ai" onClick={()=>document.getElementById("listingFileInput").click()} disabled={uploadingListingPhoto||newL.photos.length>=5}>
-                {uploadingListingPhoto?<><span className="spin"></span>Uploading...</>:"📷 Upload your photos"}
+                {uploadingListingPhoto?<><span className="spin"></span>Uploading...</>:"📷 Upload photos"}
               </button>
               <button className="btn btn-ai" onClick={findPhotos}>🖼 Find with AI</button>
             </div>
-            <div style={{fontSize:11,color:"#4c3a8a",marginTop:6}}>Upload up to 5 photos, or let AI find representative photos automatically</div>
+            <div style={{fontSize:11,color:"#4c3a8a",marginTop:6}}>Upload up to 5 of your own photos, or let AI find them automatically</div>
           </div>
 
           {/* Description */}
           <div className="fgroup">
             <label className="flabel">Description</label>
-            <textarea className="farea" placeholder="Describe the property, or let AI write it based on your details..." value={newL.desc} onChange={e=>setNewL(p=>({...p,desc:e.target.value}))} />
-            <div className="btn-row"><button className="btn btn-ai" onClick={genDesc}>✦ Write with AI</button></div>
+            <textarea className="farea" style={{minHeight:100}} placeholder="Describe the property, or let AI write it based on your details above..." value={newL.desc} onChange={e=>setNewL(p=>({...p,desc:e.target.value}))} />
+            <div className="btn-row"><button className="btn btn-ai" onClick={genDesc}>✦ Write description with AI</button></div>
           </div>
 
-          <div className="btn-row" style={{marginTop:16}}>
+          <div className="btn-row" style={{marginTop:20}}>
             <button className="btn btn-s" onClick={()=>setView("broker")}>Cancel</button>
-            <button className="btn btn-p" onClick={publishListing}>Publish listing</button>
+            <button className="btn btn-p" style={{padding:"11px 28px"}} onClick={publishListing}>Publish listing →</button>
           </div>
         </div>
       </div>
